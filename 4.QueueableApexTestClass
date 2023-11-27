@@ -1,0 +1,65 @@
+//Queueable Class
+
+public class CreatePrimaryContactQueueable implements Queueable {
+
+    private Account account;
+
+    public CreatePrimaryContactQueueable(Account acc){
+
+        this.account = acc;
+    }
+
+    public void execute(QueueableContext context){
+
+        Contact newContact = new Contact();
+        newContact.AccountId = account.Id;
+        newContact.FirstName = account.Name;
+        newContact.LastName = 'Contact';
+        newContact.Primary_Contact__c = true;
+
+
+        insert newContact;
+
+        String latestContactName = newContact.FirstName +' '+newContact.LastName;
+
+        account.Description = latestContactName;
+        update account;
+    }
+
+}
+
+//Test Class for Queueable Class
+
+@isTest
+
+public class CreatePrimaryContactQueueableTest{
+
+    public static void testQueueableMethod(){
+
+        Account testAccount = new Account();
+        tesAccount.Name = 'Test Account';
+        insert testAccount;
+
+    //create an instance of the class
+
+    test.startTest();
+
+    CreatePrimaryContactQueueable queueableJob = new CreatePrimaryContactQueueable(testAccount);
+
+    System.enqueueJob(queueableJob);
+
+    test.stopTest();
+
+//Verify the results
+
+        List<contact> createdContacts = [select id,FirstName,LastName, Primary_contact__c from Contact where AccountId =: testAccount.Id];
+
+        system.assertEquals(1, createdContacts.size(),'Expected one contact to be created');
+
+        Account updatedAccount = [select name, id, description from Account where ID =: testAccount.Id];
+
+        String expectedDescription = updatedAccount.FirstName +' '+'Contact';
+        system.assertEquals(expectedDescription,updatedAccount.description,'Account Description not updated as Expected' );
+
+    }
+}
