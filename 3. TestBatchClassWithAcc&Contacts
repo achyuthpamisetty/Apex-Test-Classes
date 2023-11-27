@@ -1,0 +1,135 @@
+//Batch Class
+
+global class AccountUpdateBatchJob implements Database.Batchable<sObject>{
+
+    global Database.QueryLocator start(Database.BatchableContext BC){
+
+        String query = 'select id, name, type, description,(select id, AccountId,Description from contacts) from Account';
+        return Database.getQueryLocator(query);
+    }
+
+    global void execute(Database.BatchableContext BC, List<Account> scope){
+
+        List<contact> updateContacts = new List<contact>();
+
+        for(Account a : scope){
+
+            String type = a.type != null ? a.type :'unknown';
+            a.Description = 'Updated by Batch Job for Types:' + type;
+
+            if(a.type == 'Prospect'){
+
+                a.Prospect_Account__c = true;
+            }
+            else if(a.type == 'Customer - Direct' || a.type == 'Customer-Channel'){
+
+                a.Customer_Account__c = true;
+            }
+            else if(a.type == 'Customer Partner / Reseller' || a.type == 'Installation Partner' || a.type == 'Technology Partner'){
+                a.Partner_Account__c = true;
+            }
+            else if(a.type == 'other'){
+                a.Other_Account__c = true;
+            }
+
+            for(Contact con: a.Contacts){
+                con.Description = 'Updated by Batch Job for Account Type:'+ type;
+                updateContacts.add(con);
+            }
+        }
+
+        update scope;
+
+        if(!updateContacts.isEmpty()){
+            update updateContacts;
+        }
+    }
+
+    global void finish(Database.BatchableContext BC){
+        //You can add Post-Processing Logic here
+    }
+}
+
+//Test Class for Batch Class
+
+@isTest
+public class AccountUpdateBatchJobTest{
+
+    @isTest
+    public static void testBatchJob(){
+
+        //Create a list to store multiple account records
+        
+        List<Account> testAccounts = new List<Account>();
+
+        Account acc1 = new Account();
+        acc1.name = 'Prospect Account';
+        acc1.type = 'Prospect';
+        testAccounts.add(aac1);
+
+        Account acc2 = new Account();
+        acc2.name = 'Customer Account';
+        acc2.type = 'Customer - Direct';
+        testAccounts.add(aac2);
+
+        Account acc3 = new Account();
+        acc3.name = 'Partner Account';
+        acc3.type = 'Customer Partner / Reseller';
+        testAccounts.add(aac3);
+
+        Account acc4 = new Account();
+        acc4.name = 'Other Account';
+        acc4.type = 'Other';
+        testAccounts.add(aac4);
+        
+
+        insert testAccounts;
+
+        Contact con1 = new Contact();
+        con1.LastName = 'Test LastName';
+        con1.AccountId = acc1.id;
+        insert con1;
+
+//Batch cannot be exceute direcly from class. First we need to create instance of the class
+
+        AccountUpdateBatchJob batchJob = new AccountUpdateBatchJob();
+        test.startTest();
+        Database.executeBatch(batchJob);
+        test.stopTest();
+
+//verify the results
+
+        List<Account> updatedAccounts = [select description, Prospect_Account__c, Customer_Account__c, Partner_Account__c, Other_Account__c, Type from Account];
+
+        for(Account updatedAcc : updatedAccounts){
+
+            String expectedDescription = 'Updated by Batch Jobfor Type:' +(updatedAcc.type != null ? updatedAcc.type : 'unknown');
+
+            System.AsserEquals(expectedDescription,updatedAcc.Description);
+
+            if(updateAcc.type =='Prospect'){
+
+                system.assertEquals(true,updateAcc.Prospect_Account__c);
+            }
+            else if(updateAcc.type == 'Customer - Direct' || updateAcc.type == 'Customer-Channel'){
+                system.assertEquals(true,updateAcc.Customer_Account__c);
+            }
+            else if(updateAcc.type == 'Customer Partner / Reseller' || updateAcc.type == 'Installation Partner' || updateAcc.type == 'Technology Partner'){
+                system.assertEquals(true,updateAcc.Partner_Account__c);
+            }
+            else{
+                system.assertEquals(true,updateAcc.Other_Account__c);
+            }
+        }
+
+        List<Contact> updatedContacts = [select description, AccountId, Account.Type from Contact where AccountId IN: testAccounts];
+        
+        for(Contact updatedCon : updatedContacts){
+
+            String expectedConDescription = 'Updated by Batch Job for Account Type:'+(updatedCon.Account.Type != null ? updatedCon.Account.Type : 'Unknown');
+
+            System.AsserEquals(expectedConDescription,updatedCon.Description);
+        }
+
+    }
+}
