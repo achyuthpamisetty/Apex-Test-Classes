@@ -1,0 +1,119 @@
+public class TaskManager{
+    public static void createTask(String title, String description){
+
+        List<Task__c> taskToInsert = new List<Task__c>();
+
+        Task__c newTask = new Task__c();
+        newTask.title__c = title;
+        newTask.description__c = description;
+        taskToInsert.add(newTask);
+
+        if(!taskToInsert.isEmpty()){
+
+            insert taskToInsert;
+        }
+    }
+
+    public static void updateTask(String taskId, String title, String description,Boolean Completed){
+
+        List<Task__c> taskList = [select id from Task__c where id = :taskId];
+        List<Task__c> taskToUpdate = new List<Task__c>();
+        
+        if(!taskList.isEmpty()){
+
+            for(task__c taskRecord : taskList){
+                taskRecord.title__c = title;
+                taskRecord.description__c = description;
+                taskRecord.completed__c = Completed;
+                taskToUpdate.add(taskRecord);
+            }
+        }
+
+        if(!taskToUpdate.isEmpty()){
+            update taskToUpdate;
+        }
+    }
+
+    public static void deleteTask(String taskId){
+
+        List<task__c> taskToDelete = [select id from Task__c where iD =:taskId];
+
+        if(!taskToDelete.isEmpty()){
+
+            delete taskToDelete;
+        }
+    }
+}
+
+
+//Apex Test Class On DML
+
+//Insert Method
+//Test classes created based on the parameters from the apex class
+
+@isTest
+public class TaskManagerTest{
+
+    @isTest
+
+    public static void testCreateTask(){
+
+        //Test Data
+        String title = 'Test Title';
+        String description = 'Test Description';
+
+        test.startTest();
+        TaskManager.createTask(title,description);
+        test.stopTest();
+
+        //Verify that the task was created
+
+        List<Task__c> taskList = [select id, title__c,description__c from task__c where title__c =:title];
+        system.asserEquals(1, taskList.size(),'A task has been created');
+
+        //1 --- > expected 1 task should create
+        //taskList.size() --- > In that list only one task should be there
+    }
+
+//For Update Method
+
+    @isTest
+
+    public static void testUpdateTask(){
+
+        //Test Data
+        Task__c taskObj = new Task__c(Title__c = 'Old Title',Description__c ='old description');
+        insert taskObj;
+
+        String newTitle = 'New Title';
+        String newDescription = 'New Description';
+        Boolean newCompleted = true;
+
+        test.startTest();
+        TaskManager.updateTask(taskObj.id, newTitle, newDescription, newCompleted);
+        test.stopTest();
+
+        Task__c updatedTask = [select id, title__c, description__c , completed__c  from Task__c where id =:taskObj.id];
+
+        system.assertEquals(newTitle,updatedTask.title__c,'Title should be updated');
+        system.assertEquals(newDescription,updatedTask.description__c,'Description should be updated');
+        system.assertEquals(newCompleted,updatedTask.completed__c,'Completed should be updated');
+
+    }
+
+//For Delete Method
+
+public static void testDeleteTask(){
+
+    Task__c taskObj = new Task__c(Title__c = 'Old Title',Description__c ='old description');
+    insert taskObj;
+
+    test.startTest();
+    TaskManager.deleteTask(taskObj.id);
+    test.stopTest();
+
+    List<Task__c> deletedTask = [select id Task__c where id =:taskObj.id];
+    system.assertEquals(0,deletedTask.size(),'Task should be deleted');
+
+}
+}
