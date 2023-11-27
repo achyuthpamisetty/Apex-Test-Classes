@@ -1,0 +1,37 @@
+//Apex Class
+
+public class mathOperationsClass{
+
+    //for Addition
+    public static Integer addNumbers(Integer num1, Integer num2){
+
+        return num1 + num2;
+    }
+
+    //for subtraction
+
+    public static Integer subtractNumbers(Integer num1 , Integer num2){
+
+        return num1 - num2;
+    }
+}
+
+//Apex Test class
+
+@isTest
+public class testMathOperationsClass{
+
+    @isTest
+        public static void testAddNumbers(){
+
+            Integer result = mathOperationsClass.addNumbers(5,3);
+            system.assertEquals(8,result);
+        }
+
+    @isTest
+        public static void testSubtractNumbers(){
+
+            Integer result = mathOperationsClass.subtractNumbers(5,3);
+            system.assertEquals(2,result);
+        }
+}
