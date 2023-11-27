@@ -1,0 +1,82 @@
+//Wrapper Class
+
+public class AccountControllerWrapper{
+
+    @AuraEnabled (cacheable = true)
+
+    public static List<AccWrapper> getNameValues(List<String> accNames){
+
+        List<AccWrapper> resultRecords = new List<AccWrapper>();
+
+        String query = 'Select Id, Name from Account WHERE name IN: accNames and Rating != null';
+        List<sObject> queryResults = Database.query(query);
+
+        for(sObject record : queryResults){
+
+            AccWrapper wrapper = new AccWrapper();
+            wrapper.testId = (String)record.get('Id');
+            wrapper.testName = (String)record.get('Name');
+            resultRecords.add(wrapper);
+        }
+
+        return resultRecords;
+    }
+
+    public class AccWrapper{
+
+        @AuraEnabled 
+        public string testId;
+        @AuraEnabled 
+        public string testName;
+    }
+}
+
+//Test for Wrapper Class
+
+@isTest 
+
+public class AccountControllerWrapperTest{
+
+    @isTest
+    public static void getNameValuesTest(){
+
+        List<Account> testAccounts = new List<Account>();
+
+        //Create new Acocunt Records with Rating
+
+        for(Integer i = 0; i<5 ; i++){
+
+            Account acc = new Account();
+            acc.Name = 'Test Account' + i;
+            acc.Rating = 'Hot';
+            testAccounts.add(acc);
+            
+        }
+        insert testAccounts;
+
+        //Create a list of strings
+        List<String> testNames = new List<String>();
+
+        for(integer i = 0; i<5 ; i++){
+            testNames.add('Test Account '+i);
+        }
+
+        test.startTest();
+        List<AccountControllerWrapper.AccWrapper> result = AccountControllerWrapper.getNameValues(testNames);
+        test.stopTest();
+
+
+        system.assertEquals(5, result.size());
+
+
+        for(integer i = 0 ; i<result.size(),i++){
+
+            AccountControllerWrapper.AccWrapper wrapper = result[i];
+            Account expectedAccount = testAccounts[i];
+
+            system.assertEquals(expectedAccount.Id, wrapper.testId);
+            system.assertEquals(expectedAccount.Name, wrapper.testName);
+        }
+    }
+
+}
