@@ -1,0 +1,7 @@
+@isTest
+Private class MyTestClass{
+    @isTest
+    static void myTestMethod(){
+        //code block
+    }
+}
